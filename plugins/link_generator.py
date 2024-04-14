@@ -5,7 +5,16 @@ from bot import Bot
 from config import ADMINS
 from helper_func import encode, get_message_id
 
-ADCORTO_API_KEY = "16d71a6393ca4b6b85d9acb343a80ca9a5bc12f3"  # Replace with your ADCorto API key
+# Function to shorten a URL using ADCorto API
+async def shorten_url(url: str) -> str:
+    api_key = "16d71a6393ca4b6b85d9acb343a80ca9a5bc12f3"
+    api_url = f"https://adcorto.com/st?api={api_key}&url={url}"
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        shortened_url = response.json().get("shortenedUrl")
+        return shortened_url
+    else:
+        return None
 
 @Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('batch'))
 async def batch(client: Client, message: Message):
@@ -35,24 +44,33 @@ async def batch(client: Client, message: Message):
 
     string = f"get-{f_msg_id * abs(client.db_channel.id)}-{s_msg_id * abs(client.db_channel.id)}"
     base64_string = await encode(string)
-
-    long_link = f"https://t.me/{client.username}?start={base64_string}"
-
-    adcorto_api_url = "https://adcorto.com/api"
-    payload = {
-        "api": ADCORTO_API_KEY,
-        "url": long_link,
-        "alias": "CustomAlias"
-    }
-    response = requests.get(adcorto_api_url, params=payload)
-    if response.status_code == 200:
-        json_response = response.json()
-        if json_response.get("status") == "success":
-            short_link = json_response.get("shortenedUrl")
-        else:
-            short_link = "Error occurred while shortening the link"
+    original_link = f"https://t.me/{client.username}?start={base64_string}"
+    shortened_link = await shorten_url(original_link)
+    if shortened_link:
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={shortened_link}')]])
+        await second_message.reply_text(f"<b>Here is your short link</b>\n\n{shortened_link}", quote=True, reply_markup=reply_markup)
     else:
-        short_link = "Error occurred while connecting to ADCorto API"
+        await second_message.reply_text("❌ Error occurred while shortening the URL", quote=True)
 
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={short_link}')]])
-    await second_message.reply_text(f"<b>Here is your link</b>\n\n{short_link}", quote=True, reply_markup=reply_markup)
+
+@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('genlink'))
+async def link_generator(client: Client, message: Message):
+    while True:
+        try:
+            channel_message = await client.ask(text="Forward Message from the DB Channel (with Quotes)..\nor Send the DB Channel Post link", chat_id=message.from_user.id, filters=(filters.forwarded | (filters.text & ~filters.forwarded)), timeout=60)
+        except:
+            return
+        msg_id = await get_message_id(client, channel_message)
+        if msg_id:
+            break
+        else:
+            await channel_message.reply("❌ Error\n\nthis Forwarded Post is not from my DB Channel or this Link is not taken from DB Channel", quote=True)
+            continue
+
+    original_link = f"https://t.me/{client.username}?start={base64_string}"
+    shortened_link = await shorten_url(original_link)
+    if shortened_link:
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={shortened_link}')]])
+        await channel_message.reply_text(f"<b>Here is your short link</b>\n\n{shortened_link}", quote=True, reply_markup=reply_markup)
+    else:
+        await channel_message.reply_text("❌ Error occurred while shortening the URL", quote=True)
