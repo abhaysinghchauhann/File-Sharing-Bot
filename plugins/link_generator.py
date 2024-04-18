@@ -5,9 +5,10 @@ from config import ADMINS
 from helper_func import encode, get_message_id
 import requests
 
-def shorten_url(pvdurl):
-    api_key = "16d71a6393ca4b6b85d9acb343a80ca9a5bc12f3"
-    api_url = f"https://adcorto.com/api?api={api_key}&url={pvdurl}"
+
+def shorten_url(abhy_ka_lund):
+    api_key = "c79e4a5f2a727fd1fe1361f2903d2360a80e0a77" # apna api dalde idhr
+    api_url = f"https://vipurl.in/api?api={api_key}&url={abhy_ka_lund}"
     response = requests.get(api_url)
     if response.status_code == 200:
         data = response.json()
@@ -18,9 +19,6 @@ def shorten_url(pvdurl):
     else:
         print("Error:", response.status_code)
     return None
-
-
-
 
 
 
@@ -50,12 +48,12 @@ async def batch(client: Client, message: Message):
             await second_message.reply("❌ Error\n\nthis Forwarded Post is not from my DB Channel or this Link is taken from DB Channel", quote = True)
             continue
 
-    pvdurl = link
-    x = shorten_url(pvdurl)
 
     string = f"get-{f_msg_id * abs(client.db_channel.id)}-{s_msg_id * abs(client.db_channel.id)}"
     base64_string = await encode(string)
     link = f"https://t.me/{client.username}?start={base64_string}"
+    abhy_ka_lund = link
+    x = shorten_url(abhy_ka_lund)
     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={x}')]])
     await second_message.reply_text(f"<b>Here is your link</b>\n\n{x}", quote=True, reply_markup=reply_markup)
 
@@ -74,10 +72,11 @@ async def link_generator(client: Client, message: Message):
             await channel_message.reply("❌ Error\n\nthis Forwarded Post is not from my DB Channel or this Link is not taken from DB Channel", quote = True)
             continue
 
-    pvdurl = link
-    x = shorten_url(pvdurl)
+
 
     base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
     link = f"https://t.me/{client.username}?start={base64_string}"
+    abhy_ka_lund = link
+    x = shorten_url(abhy_ka_lund)
     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={x}')]])
     await channel_message.reply_text(f"<b>Here is your link</b>\n\n{x}", quote=True, reply_markup=reply_markup)
